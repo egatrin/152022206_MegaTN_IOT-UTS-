@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data Suhu dan Kelembapan</title>
+  <style>
+    /* Global Styles */
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f0f4f8;
+      margin: 0;
+      padding: 0;
+      color: #333;
+    }
+
+    .container {
+      width: 90%;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 20px;
+      background-color: #ffffff;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+      border-radius: 15px;
+      overflow: hidden;
+    }
+
+    h1 {
+      text-align: center;
+      color: #00796B;
+      margin-bottom: 30px;
+      font-size: 2rem;
+      font-weight: 600;
+      background: -webkit-linear-gradient(#00796B, #004D40);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* Summary Section */
+    .summary {
+      display: flex;
+      justify-content: space-around;
+      margin-bottom: 30px;
+      gap: 10px;
+    }
+
+    .summary div {
+      flex: 1;
+      background-color: #ffffff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      text-align: center;
+      color: #333;
+      font-size: 1.1rem;
+      font-weight: 500;
+      transition: transform 0.3s;
+    }
+
+    .summary div:hover {
+      transform: scale(1.05);
+    }
+
+    .summary div span {
+      display: block;
+      font-size: 2.5rem;
+      color: #00796B;
+      font-weight: 700;
+      margin-top: 8px;
+    }
+
+    /* Table Section */
+    .section {
+      margin-top: 20px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+
+    th, td {
+      padding: 12px;
+      text-align: center;
+      font-size: 0.9rem;
+    }
+
+    th {
+      background: #00796B;
+      color: white;
+      text-transform: uppercase;
+      font-weight: bold;
+    }
+
+    td {
+      background-color: #f9f9f9;
+    }
+
+    tbody tr:nth-child(even) {
+      background-color: #f1f1f1;
+    }
+
+    tbody tr:hover {
+      background-color: #e0f7fa;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    /* Chart Style */
+    #chart-suhu {
+      background-color: #ffffff;
+      border-radius: 15px;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      margin-top: 20px;
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h1>Data Sensor Suhu dan Kelembapan</h1>
+
+    <!-- Summary Section -->
+    <div class="summary">
+      <div style="background: linear-gradient(to bottom right, #FFD54F, #FFA000); color: white;">
+        <strong>Suhu Maksimum</strong>
+        <span id="suhu-max">-</span>
+      </div>
+      <div style="background: linear-gradient(to bottom right, #4DD0E1, #00796B); color: white;">
+        <strong>Suhu Minimum</strong>
+        <span id="suhu-min">-</span>
+      </div>
+      <div style="background: linear-gradient(to bottom right, #81C784, #388E3C); color: white;">
+        <strong>Suhu Rata-rata</strong>
+        <span id="suhu-rata">-</span>
+      </div>
+    </div>
+
+    <!-- Grafik Suhu dan Kelembapan di bawah summary -->
+    <div class="section">
+      <h2>Grafik Suhu dan Kelembapan</h2>
+      <canvas id="chart-suhu" width="400" height="200"></canvas>
+    </div>
+
+    <!-- Tabel Data Suhu dan Kelembapan -->
+    <div class="section">
+      <h2>Data Suhu dan Kelembapan</h2>
+      <table id="data-suhu">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Suhu (°C)</th>
+            <th>Kelembapan (%)</th>
+            <th>Waktu</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Data akan diisi melalui JavaScript -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    // Mengambil data dari API
+    fetch('http://localhost/UTS_IOT/get.php')
+      .then(response => response.json())
+      .then(data => {
+        // Menampilkan suhu maksimum, minimum, dan rata-rata
+        document.getElementById('suhu-max').textContent = data.suhumax + '°C';
+        document.getElementById('suhu-min').textContent = data.suhumin + '°C';
+        document.getElementById('suhu-rata').textContent = data.suhurata.toFixed(2) + '°C';
+
+        // Menampilkan data suhu dan kelembapan
+        const tableBody = document.querySelector('#data-suhu tbody');
+        data.nilai_suhu_max_humid_max.forEach(item => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${item.id}</td>
+            <td>${item.suhu}°C</td>
+            <td>${item.humid}%</td>
+            <td>${item.ts}</td>
+          `;
+          tableBody.appendChild(row);
+        });
+
+        // Data untuk grafik
+        const labels = data.nilai_suhu_max_humid_max.map(item => item.ts);
+        const suhuData = data.nilai_suhu_max_humid_max.map(item => parseFloat(item.suhu));
+        const humidData = data.nilai_suhu_max_humid_max.map(item => parseFloat(item.humid));
+
+        // Inisialisasi grafik
+        const ctx = document.getElementById('chart-suhu').getContext('2d');
+        new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: 'Suhu (°C)',
+                data: suhuData,
+                borderColor: '#FF7043',
+                backgroundColor: 'rgba(255, 112, 67, 0.2)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4
+              },
+              {
+                label: 'Kelembapan (%)',
+                data: humidData,
+                borderColor: '#29B6F6',
+                backgroundColor: 'rgba(41, 182, 246, 0.2)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: {
+                position: 'top',
+                labels: { font: { size: 14 } }
+              }
+            },
+            scales: {
+              x: { title: { display: true, text: 'Waktu' } },
+              y: { beginAtZero: true, title: { display: true, text: 'Nilai' } }
+            }
+          }
+        });
+      })
+      .catch(error => console.error('Gagal mengambil data:', error));
+  </script>
+</body>
+</html>
